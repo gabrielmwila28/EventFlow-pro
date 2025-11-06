@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: eventflow-pro
+    env: node
+    buildCommand: npm install
+    startCommand: node simple-server.cjs
+    envVars:
+      - key: NODE_ENV
+        value: production
