@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>EventFlow Pro | Enterprise Event Management</title>
+    <meta
+      name="description"
+      content="Professional event management platform for teams and organizations"
+    />
+
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css" />
+
+    <!-- Favicon -->
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>"
+    />
+  </head>
+  <body>
+    <!-- App Container -->
+    <div class="app-container">
+      <!-- Sidebar Navigation -->
+      <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="logo">
+            <div class="logo-icon">🎯</div>
+            <div class="logo-text">
+              <span class="logo-primary">EventFlow</span>
+              <span class="logo-subtitle">PRO</span>
+            </div>
+          </div>
+          <button class="sidebar-toggle" id="sidebar-toggle">
+            <i class="fas fa-bars"></i>
+          </button>
+        </div>
+
+        <div class="sidebar-content">
+          <div class="nav-section">
+            <div class="nav-section-label">MAIN</div>
+            <a
+              href="#dashboard"
+              class="nav-item active"
+              data-section="dashboard"
+            >
+              <i class="fas fa-chart-pie"></i>
+              <span class="nav-text">Dashboard</span>
+              <div class="nav-indicator"></div>
+            </a>
+            <a href="#events" class="nav-item" data-section="events">
+              <i class="fas fa-calendar-alt"></i>
+              <span class="nav-text">Events</span>
+              <span class="nav-badge" id="events-count">0</span>
+            </a>
+            <a href="#calendar" class="nav-item" data-section="calendar">
+              <i class="fas fa-calendar-day"></i>
+              <span class="nav-text">Calendar</span>
+            </a>
+            <a href="#attendees" class="nav-item" data-section="attendees">
+              <i class="fas fa-users"></i>
+              <span class="nav-text">Attendees</span>
+            </a>
+          </div>
+
+          <div class="nav-section">
+            <div class="nav-section-label">TOOLS</div>
+            <a
+              href="#analytics"
+              class="nav-item"
+              data-section="analytics"
+              id="analytics-nav"
+            >
+              <i class="fas fa-chart-bar"></i>
+              <span class="nav-text">Analytics</span>
+            </a>
+            <a href="#reports" class="nav-item" data-section="reports">
+              <i class="fas fa-file-alt"></i>
+              <span class="nav-text">Reports</span>
+            </a>
+            <a href="#settings" class="nav-item" data-section="settings">
+              <i class="fas fa-cog"></i>
+              <span class="nav-text">Settings</span>
+            </a>
+          </div>
+
+          <div class="sidebar-footer">
+            <div class="user-card" id="nav-user">
+              <div class="user-avatar" id="user-avatar">
+                <i class="fas fa-user"></i>
+              </div>
+              <div class="user-info">
+                <div class="user-name" id="user-name">Guest User</div>
+                <div class="user-role" id="user-role">Not signed in</div>
+              </div>
+              <div class="user-actions">
+                <button class="icon-btn" onclick="app.showUserMenu()">
+                  <i class="fas fa-ellipsis-v"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
+      <!-- User Menu Dropdown -->
+      <div class="user-menu-dropdown" id="user-menu">
+        <div class="dropdown-item" onclick="app.showProfileModal()">
+          <i class="fas fa-user-edit"></i>
+          Edit Profile
+        </div>
+        <div class="dropdown-item" onclick="app.showNotificationsPanel()">
+          <i class="fas fa-bell"></i>
+          Notifications
+          <span class="badge">3</span>
+        </div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item" onclick="app.toggleTheme()">
+          <i class="fas fa-moon"></i>
+          <span class="theme-text">Dark Mode</span>
+        </div>
+        <div class="dropdown-divider"></div>
+        <div class="dropdown-item text-danger" onclick="app.logout()">
+          <i class="fas fa-sign-out-alt"></i>
+          Sign Out
+        </div>
+      </div>
+
+      <!-- Main Content Area -->
+      <main class="main-content">
+        <!-- Top Bar -->
+        <header class="top-bar">
+          <div class="top-bar-left">
+            <div class="breadcrumb">
+              <span class="breadcrumb-item active">Dashboard</span>
+            </div>
+          </div>
+          <div class="top-bar-right">
+            <div class="top-bar-actions">
+              <button
+                class="action-btn"
+                onclick="app.showQuickEventModal()"
+                title="Quick Event"
+              >
+                <i class="fas fa-bolt"></i>
+              </button>
+              <button
+                class="action-btn"
+                onclick="app.showSearchModal()"
+                title="Search"
+              >
+                <i class="fas fa-search"></i>
+              </button>
+              <button
+                class="action-btn notification-btn"
+                onclick="app.toggleNotifications()"
+                title="Notifications"
+              >
+                <i class="fas fa-bell"></i>
+                <span class="notification-dot"></span>
+              </button>
+              <div class="user-mini">
+                <div class="user-avatar-sm" id="user-avatar-sm">
+                  <i class="fas fa-user"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Content Sections -->
+        <div class="content-area">
+          <!-- Dashboard Section -->
+          <section id="dashboard" class="content-section active">
+            <div class="section-header">
+              <div class="header-content">
+                <h1 class="page-title">Dashboard Overview</h1>
+                <p class="page-subtitle">
+                  Welcome back! Here's what's happening with your events.
+                </p>
+              </div>
+              <div class="header-actions">
+                <button
+                  class="btn btn-primary btn-icon"
+                  onclick="app.showCreateEventModal()"
+                >
+                  <i class="fas fa-plus"></i>
+                  New Event
+                </button>
+              </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-content">
+                  <div class="stat-icon-wrapper bg-primary">
+                    <i class="fas fa-calendar-check"></i>
+                  </div>
+                  <div class="stat-data">
+                    <div class="stat-value" id="total-events">0</div>
+                    <div class="stat-label">Total Events</div>
+                  </div>
+                </div>
+                <div class="stat-trend positive">
+                  <i class="fas fa-arrow-up"></i>
+                  12%
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-content">
+                  <div class="stat-icon-wrapper bg-success">
+                    <i class="fas fa-users"></i>
+                  </div>
+                  <div class="stat-data">
+                    <div class="stat-value" id="total-attendees">0</div>
+                    <div class="stat-label">Total Attendees</div>
+                  </div>
+                </div>
+                <div class="stat-trend positive">
+                  <i class="fas fa-arrow-up"></i>
+                  8%
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-content">
+                  <div class="stat-icon-wrapper bg-warning">
+                    <i class="fas fa-clock"></i>
+                  </div>
+                  <div class="stat-data">
+                    <div class="stat-value" id="upcoming-events-count">0</div>
+                    <div class="stat-label">Upcoming</div>
+                  </div>
+                </div>
+                <div class="stat-trend neutral">
+                  <i class="fas fa-minus"></i>
+                  0%
+                </div>
+              </div>
+
+              <div class="stat-card">
+                <div class="stat-content">
+                  <div class="stat-icon-wrapper bg-info">
+                    <i class="fas fa-chart-line"></i>
+                  </div>
+                  <div class="stat-data">
+                    <div class="stat-value" id="attendance-rate">0%</div>
+                    <div class="stat-label">Attendance Rate</div>
+                  </div>
+                </div>
+                <div class="stat-trend positive">
+                  <i class="fas fa-arrow-up"></i>
+                  5%
+                </div>
+              </div>
+            </div>
+
+            <!-- Dashboard Content Grid -->
+            <div class="dashboard-grid">
+              <!-- Recent Activity -->
+              <div class="dashboard-card">
+                <div class="card-header">
+                  <h3 class="card-title">Recent Activity</h3>
+                  <a href="#events" class="card-action">View All</a>
+                </div>
+                <div class="card-body">
+                  <div class="activity-list" id="recent-activity">
+                    <div class="activity-empty">
+                      <i class="fas fa-calendar-plus"></i>
+                      <p>No recent activity</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Upcoming Events -->
+              <div class="dashboard-card">
+                <div class="card-header">
+                  <h3 class="card-title">Upcoming Events</h3>
+                  <a href="#calendar" class="card-action">View Calendar</a>
+                </div>
+                <div class="card-body">
+                  <div class="events-timeline" id="upcoming-events">
+                    <div class="timeline-empty">
+                      <i class="fas fa-clock"></i>
+                      <p>No upcoming events</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Quick Stats -->
+              <div class="dashboard-card">
+                <div class="card-header">
+                  <h3 class="card-title">Event Analytics</h3>
+                  <a href="#analytics" class="card-action">Detailed View</a>
+                </div>
+                <div class="card-body">
+                  <div class="analytics-mini">
+                    <div class="metric">
+                      <div class="metric-value" id="avg-attendance">0</div>
+                      <div class="metric-label">Avg. Attendance</div>
+                    </div>
+                    <div class="metric">
+                      <div class="metric-value" id="completion-rate">0%</div>
+                      <div class="metric-label">Completion Rate</div>
+                    </div>
+                    <div class="metric">
+                      <div class="metric-value" id="satisfaction-score">
+                        0.0
+                      </div>
+                      <div class="metric-label">Satisfaction Score</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recent Events Chart -->
+              <div class="dashboard-card card-wide">
+                <div class="card-header">
+                  <h3 class="card-title">Event Performance</h3>
+                  <div class="time-filter">
+                    <select class="filter-select" id="chart-period">
+                      <option value="7d">Last 7 Days</option>
+                      <option value="30d">Last 30 Days</option>
+                      <option value="90d">Last 90 Days</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="chart-container">
+                    <canvas id="performance-chart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Events Section -->
+          <section id="events" class="content-section">
+            <div class="section-header">
+              <div class="header-content">
+                <h1 class="page-title">Event Management</h1>
+                <p class="page-subtitle">
+                  Create, manage, and track all your events in one place.
+                </p>
+              </div>
+              <div class="header-actions">
+                <div class="action-group">
+                  <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input
+                      type="text"
+                      id="event-search"
+                      placeholder="Search events..."
+                    />
+                  </div>
+                  <select class="filter-select" id="event-filter">
+                    <option value="all">All Events</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="past">Past Events</option>
+                    <option value="my-events">My Events</option>
+                    <option value="pending">Pending Approval</option>
+                  </select>
+                  <button
+                    class="btn btn-primary btn-icon"
+                    onclick="app.showCreateEventModal()"
+                  >
+                    <i class="fas fa-plus"></i>
+                    New Event
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="events-container">
+              <div class="events-header">
+                <div class="events-count">
+                  <span id="filtered-events-count">0</span> events found
+                </div>
+                <div class="view-toggle">
+                  <button class="view-option active" data-view="grid">
+                    <i class="fas fa-th"></i>
+                  </button>
+                  <button class="view-option" data-view="list">
+                    <i class="fas fa-list"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="events-grid" id="events-grid">
+                <!-- Events will be loaded here -->
+              </div>
+            </div>
+          </section>
+
+          <!-- Other sections (Calendar, Analytics, etc.) would go here -->
+          <section id="calendar" class="content-section">
+            <div class="section-header">
+              <h1 class="page-title">Calendar View</h1>
+              <p class="page-subtitle">Manage your event schedule visually.</p>
+            </div>
+            <!-- Calendar content -->
+          </section>
+
+          <section id="analytics" class="content-section">
+            <div class="section-header">
+              <h1 class="page-title">Analytics Dashboard</h1>
+              <p class="page-subtitle">
+                Deep insights into your event performance.
+              </p>
+            </div>
+            <!-- Analytics content -->
+          </section>
+        </div>
+      </main>
+    </div>
+
+    <!-- Authentication Modal -->
+    <div class="modal-overlay active" id="auth-modal">
+      <div class="modal-container auth-modal">
+        <div class="modal-header">
+          <div class="auth-header">
+            <div class="auth-logo">
+              <div class="logo-icon">🎯</div>
+              <div class="logo-text">
+                <span class="logo-primary">EventFlow</span>
+                <span class="logo-subtitle">PRO</span>
+              </div>
+            </div>
+            <h2 class="auth-title">Welcome to EventFlow Pro</h2>
+            <p class="auth-subtitle">
+              Sign in or create an account to get started
+            </p>
+          </div>
+          <button class="modal-close" onclick="app.hideAuthModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <div class="auth-tabs">
+            <button class="auth-tab active" data-tab="login">
+              <i class="fas fa-sign-in-alt"></i>
+              Sign In
+            </button>
+            <button class="auth-tab" data-tab="signup">
+              <i class="fas fa-user-plus"></i>
+              Create Account
+            </button>
+          </div>
+
+          <form class="auth-form active" id="login-form">
+            <div class="form-group">
+              <label for="email" class="form-label">Email Address</label>
+              <div class="input-group">
+                <i class="fas fa-envelope input-icon"></i>
+                <input
+                  type="email"
+                  id="email"
+                  class="form-input"
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="password" class="form-label">Password</label>
+              <div class="input-group">
+                <i class="fas fa-lock input-icon"></i>
+                <input
+                  type="password"
+                  id="password"
+                  class="form-input"
+                  placeholder="Enter your password"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="form-options">
+              <label class="checkbox">
+                <input type="checkbox" id="remember-me" />
+                <span class="checkmark"></span>
+                Remember me
+              </label>
+              <a href="#" class="link">Forgot password?</a>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-primary btn-block"
+              onclick="app.login()"
+            >
+              <i class="fas fa-sign-in-alt"></i>
+              Sign In to Dashboard
+            </button>
+          </form>
+
+          <form class="auth-form" id="signup-form">
+            <div class="form-group">
+              <label for="signup-email" class="form-label">Email Address</label>
+              <div class="input-group">
+                <i class="fas fa-envelope input-icon"></i>
+                <input
+                  type="email"
+                  id="signup-email"
+                  class="form-input"
+                  placeholder="Enter your email"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="signup-password" class="form-label">Password</label>
+              <div class="input-group">
+                <i class="fas fa-lock input-icon"></i>
+                <input
+                  type="password"
+                  id="signup-password"
+                  class="form-input"
+                  placeholder="Create a password"
+                  required
+                  minlength="6"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="signup-role" class="form-label">Account Type</label>
+              <div class="input-group">
+                <i class="fas fa-user-tag input-icon"></i>
+                <select id="signup-role" class="form-input" required>
+                  <option value="ATTENDEE">Event Attendee</option>
+                  <option value="ORGANIZER">Event Organizer</option>
+                  <option value="ADMIN">Administrator</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-options">
+              <label class="checkbox">
+                <input type="checkbox" id="accept-terms" required />
+                <span class="checkmark"></span>
+                I agree to the <a href="#" class="link">Terms of Service</a> and
+                <a href="#" class="link">Privacy Policy</a>
+              </label>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-primary btn-block"
+              onclick="app.signup()"
+            >
+              <i class="fas fa-user-plus"></i>
+              Create Professional Account
+            </button>
+          </form>
+        </div>
+
+        <div class="modal-footer">
+          <p class="auth-footer-text">
+            By continuing, you agree to our Terms of Service and Privacy Policy.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create Event Modal -->
+    <div class="modal-overlay" id="create-event-modal">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h3 class="modal-title">Create New Event</h3>
+          <button class="modal-close" onclick="app.hideCreateEventModal()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="modal-body">
+          <form id="create-event-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="event-title" class="form-label"
+                  >Event Title *</label
+                >
+                <input
+                  type="text"
+                  id="event-title"
+                  class="form-input"
+                  placeholder="Enter event title"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="event-category" class="form-label">Category</label>
+                <select id="event-category" class="form-input">
+                  <option value="conference">Conference</option>
+                  <option value="workshop">Workshop</option>
+                  <option value="meetup">Meetup</option>
+                  <option value="social">Social Event</option>
+                  <option value="training">Training</option>
+                  <option value="webinar">Webinar</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="event-description" class="form-label"
+                >Description *</label
+              >
+              <textarea
+                id="event-description"
+                class="form-textarea"
+                placeholder="Describe your event..."
+                rows="4"
+                required
+              ></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="event-date" class="form-label">Date & Time *</label>
+                <input
+                  type="datetime-local"
+                  id="event-date"
+                  class="form-input"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="event-duration" class="form-label">Duration</label>
+                <select id="event-duration" class="form-input">
+                  <option value="30">30 minutes</option>
+                  <option value="60">1 hour</option>
+                  <option value="90">1.5 hours</option>
+                  <option value="120">2 hours</option>
+                  <option value="180">3 hours</option>
+                  <option value="240">4+ hours</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="event-location" class="form-label">Location *</label>
+              <input
+                type="text"
+                id="event-location"
+                class="form-input"
+                placeholder="Enter event location or online meeting link"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="event-tags" class="form-label">Tags</label>
+              <input
+                type="text"
+                id="event-tags"
+                class="form-input"
+                placeholder="Add tags separated by commas"
+              />
+              <div class="form-hint">
+                e.g., tech, networking, free, workshop
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="event-capacity" class="form-label">Capacity</label>
+                <input
+                  type="number"
+                  id="event-capacity"
+                  class="form-input"
+                  placeholder="Unlimited"
+                  min="1"
+                />
+              </div>
+              <div class="form-group">
+                <label class="checkbox">
+                  <input type="checkbox" id="event-require-approval" />
+                  <span class="checkmark"></span>
+                  Require RSVP approval
+                </label>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="app.hideCreateEventModal()">
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            onclick="app.createEvent()"
+          >
+            <i class="fas fa-calendar-plus"></i>
+            Create Event
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+      </div>
+    </div>
+
+    <!-- Notifications Panel -->
+    <div class="notifications-panel" id="notifications-panel">
+      <div class="panel-header">
+        <h4>Notifications</h4>
+        <button class="panel-close" onclick="app.hideNotifications()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="panel-body">
+        <div class="notifications-list" id="notifications-list">
+          <!-- Notifications will be populated here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

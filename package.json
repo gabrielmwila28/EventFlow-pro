@@ -1,0 +1,36 @@
+{
+  "name": "event-monolith-app",
+  "version": "1.0.0",
+  "description": "A collaborative event management system with realtime updates",
+  "main": "simple-server.cjs",
+  "scripts": {
+    "start": "node simple-server.cjs",
+    "dev": "node simple-server.cjs",
+    "build": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "test": "echo \"No tests specified\" && exit 0"
+  },
+  "keywords": [
+    "event",
+    "management",
+    "realtime",
+    "api"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.18.0",
+    "bcrypt": "^6.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemailer": "^6.10.1",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "prisma": "^6.18.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
