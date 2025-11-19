@@ -1,4 +1,4 @@
-// simple-server.cjs - WORKING VERSION WITH SWAGGER
+// simple-server.cjs - COMPLETE WORKING VERSION WITH SWAGGER
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const { PrismaClient } = require('@prisma/client');
@@ -90,6 +90,7 @@ server.on('request', async (req, res) => {
         <style>
           body { margin: 0; padding: 0; }
           #swagger-ui { padding: 20px; }
+          .swagger-ui .info h1 { color: #2563eb; }
         </style>
       </head>
       <body>
@@ -107,6 +108,10 @@ server.on('request', async (req, res) => {
               {
                 url: 'https://eventflow-pro.onrender.com',
                 description: 'Production server'
+              },
+              {
+                url: 'http://localhost:3001',
+                description: 'Development server'
               }
             ],
             paths: {
@@ -377,7 +382,6 @@ server.on('request', async (req, res) => {
     return;
   }
 
-  // [KEEP ALL YOUR EXISTING ROUTES EXACTLY AS THEY ARE]
   // User Signup with Email
   if (req.method === 'POST' && req.url === '/signup') {
     let body = '';
@@ -489,7 +493,6 @@ server.on('request', async (req, res) => {
     return;
   }
 
-  // [KEEP ALL YOUR OTHER ROUTES EXACTLY AS THEY WERE]
   // Get All Events
   if (req.method === 'GET' && req.url === '/events') {
     console.log('🎯 GET /events endpoint hit');
@@ -624,7 +627,189 @@ server.on('request', async (req, res) => {
     return;
   }
 
-  // [KEEP ALL YOUR OTHER ROUTES - they should work exactly as before]
+  // Approve Event (Admin only) with WebSocket broadcast
+  if (req.method === 'PUT' && req.url.includes('/approve')) {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'No token provided' }));
+        return;
+      }
+
+      const token = authHeader.slice(7);
+      const decoded = jwt.verify(token, JWT_SECRET);
+
+      // Check if user is admin
+      if (decoded.role !== 'ADMIN') {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Requires ADMIN role' }));
+        return;
+      }
+
+      // Extract event ID from URL - better parsing for /events/:id/approve
+      const urlParts = req.url.split('/');
+      const eventId = urlParts[2]; // events/[id]/approve
+
+      if (!eventId) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Event ID is required' }));
+        return;
+      }
+
+      const event = await prisma.event.update({
+        where: { id: eventId },
+        data: { approved: true },
+        include: {
+          organizer: { select: { email: true } },
+          rsvps: true
+        }
+      });
+
+      console.log(`✅ Event approved: ${event.title}`);
+      
+      // Broadcast real-time update
+      broadcast({
+        type: 'EVENT_APPROVED',
+        event,
+        timestamp: new Date().toISOString()
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        message: 'Event approved successfully', 
+        event 
+      }));
+    } catch (error) {
+      console.error('❌ Event approval error:', error);
+      if (error.code === 'P2025') {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Event not found' }));
+      } else {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to approve event', details: error.message }));
+      }
+    }
+    return;
+  }
+
+  // RSVP to Event with WebSocket broadcast
+  if (req.method === 'POST' && req.url.includes('/rsvp')) {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const authHeader = req.headers['authorization'];
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'No token provided' }));
+          return;
+        }
+
+        const token = authHeader.slice(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        // Extract event ID from URL (remove /rsvp from the end)
+        const eventId = req.url.split('/')[2].replace('/rsvp', '');
+        const { status = 'GOING' } = JSON.parse(body);
+
+        // Check if event exists
+        const event = await prisma.event.findUnique({ where: { id: eventId } });
+        if (!event) {
+          res.writeHead(404, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Event not found' }));
+          return;
+        }
+
+        // Check if event is approved (unless admin)
+        if (!event.approved && decoded.role !== 'ADMIN') {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Event not approved yet' }));
+          return;
+        }
+
+        // Create or update RSVP
+        const rsvp = await prisma.rSVP.upsert({
+          where: {
+            userId_eventId: {
+              userId: decoded.userId,
+              eventId: eventId
+            }
+          },
+          update: { status },
+          create: {
+            userId: decoded.userId,
+            eventId: eventId,
+            status
+          },
+          include: {
+            user: { select: { email: true } },
+            event: { 
+              select: { 
+                title: true,
+                id: true
+              } 
+            }
+          }
+        });
+
+        console.log(`✅ RSVP ${status} for event: ${rsvp.event.title}`);
+        
+        // Broadcast real-time update
+        broadcast({
+          type: 'RSVP_UPDATED',
+          rsvp,
+          eventId: eventId,
+          timestamp: new Date().toISOString()
+        });
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ 
+          message: `RSVP ${status} successfully`,
+          rsvp 
+        }));
+      } catch (error) {
+        console.error('❌ RSVP error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to RSVP', details: error.message }));
+      }
+    });
+    return;
+  }
+
+  // Get Event RSVPs
+  if (req.method === 'GET' && req.url.includes('/rsvps')) {
+    try {
+      const authHeader = req.headers['authorization'];
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'No token provided' }));
+        return;
+      }
+
+      // Extract event ID from URL (remove /rsvps from the end)
+      const eventId = req.url.split('/')[2].replace('/rsvps', '');
+
+      const rsvps = await prisma.rSVP.findMany({
+        where: { eventId: eventId },
+        include: {
+          user: { select: { email: true, role: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        message: 'RSVPs fetched successfully',
+        rsvps 
+      }));
+    } catch (error) {
+      console.error('❌ Get RSVPs error:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Failed to fetch RSVPs', details: error.message }));
+    }
+    return;
+  }
 
   // Not found
   res.writeHead(404, { 'Content-Type': 'application/json' });
@@ -633,16 +818,22 @@ server.on('request', async (req, res) => {
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log('🎉 SERVER RUNNING WITH SWAGGER DOCS!');
+  console.log('🎉 ENHANCED SERVER RUNNING WITH WEBSOCKETS!');
   console.log('📍 http://localhost:' + PORT);
-  console.log('📚 Swagger Docs: http://localhost:' + PORT + '/swagger');
   console.log('🔌 WebSocket: ws://localhost:' + PORT);
-  console.log('\n✅ KEY ENDPOINTS:');
-  console.log('   GET  /health');
-  console.log('   GET  /swagger');
-  console.log('   GET  /test-db');
-  console.log('   POST /signup');
-  console.log('   POST /login');
-  console.log('   GET  /events');
-  console.log('   POST /events');
+  console.log('📚 Swagger Docs: http://localhost:' + PORT + '/swagger');
+  console.log('\n✅ TEST THESE ENDPOINTS:');
+  console.log('   GET  http://localhost:' + PORT + '/health');
+  console.log('   GET  http://localhost:' + PORT + '/swagger');
+  console.log('   GET  http://localhost:' + PORT + '/test-db');
+  console.log('   POST http://localhost:' + PORT + '/signup');
+  console.log('   POST http://localhost:' + PORT + '/login');
+  console.log('   POST http://localhost:' + PORT + '/events');
+  console.log('   GET  http://localhost:' + PORT + '/events');
+  console.log('   PUT  http://localhost:' + PORT + '/events/:id/approve');
+  console.log('   POST http://localhost:' + PORT + '/events/:id/rsvp');
+  console.log('   GET  http://localhost:' + PORT + '/events/:id/rsvps');
+  console.log('   PUT  http://localhost:' + PORT + '/events/:id');
+  console.log('   DELETE http://localhost:' + PORT + '/events/:id');
+  console.log('\n🔌 REAL-TIME UPDATES: Connect to ws://localhost:' + PORT + ' for live events/RSVP updates');
 });
