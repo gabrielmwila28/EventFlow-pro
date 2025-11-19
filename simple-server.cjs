@@ -1,22 +1,102 @@
-// simple-server.cjs - COMPLETE WORKING SERVER WITH ALL FEATURES
+// simple-server.cjs - COMPLETE WORKING SERVER WITH ALL FEATURES + SWAGGER
 const http = require('http');
 const { WebSocketServer } = require('ws');
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const express = require('express');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
+
+// Create Express app for Swagger
+const app = express();
 
 const prisma = new PrismaClient();
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret';
 
-// WebSocket setup
-const server = http.createServer();
+// ==================== SWAGGER SETUP ====================
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'EventFlow Pro API',
+      version: '1.0.0',
+      description: 'A complete event management system with real-time updates and role-based access control',
+      contact: {
+        name: 'EventFlow Pro Support',
+        url: 'https://github.com/gabrielmwila28/EventFlow-pro'
+      },
+    },
+    servers: [
+      {
+        url: `https://eventflow-pro.onrender.com`,
+        description: 'Production server',
+      },
+      {
+        url: `http://localhost:${process.env.PORT || 3001}`,
+        description: 'Development server',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
+      },
+      schemas: {
+        User: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            email: { type: 'string', format: 'email' },
+            role: { type: 'string', enum: ['ADMIN', 'ORGANIZER', 'ATTENDEE'] },
+            createdAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        Event: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            title: { type: 'string' },
+            description: { type: 'string' },
+            date: { type: 'string', format: 'date-time' },
+            location: { type: 'string' },
+            approved: { type: 'boolean' },
+            organizerId: { type: 'string', format: 'uuid' },
+            createdAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        RSVP: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', format: 'uuid' },
+            userId: { type: 'string', format: 'uuid' },
+            eventId: { type: 'string', format: 'uuid' },
+            status: { type: 'string', enum: ['GOING', 'MAYBE', 'NOT_GOING'] },
+            createdAt: { type: 'string', format: 'date-time' }
+          }
+        }
+      }
+    },
+    security: [{
+      bearerAuth: [],
+    }],
+  },
+  apis: ['./simple-server.cjs'],
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// Create HTTP server with Express app
+const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 // Store connected WebSocket clients
 const clients = new Set();
-
-// In your simple-server.js, update the email transporter section:
 
 // Email transporter (Ethereal) with fallback
 let emailTransporter;
@@ -25,7 +105,7 @@ try {
     host: 'smtp.ethereal.email',
     port: 587,
     auth: {
-      user: process.env.ETHEREAL_USERNAME, // ← Change this from ETHEREAL_EMAIL
+      user: process.env.ETHEREAL_USERNAME,
       pass: process.env.ETHEREAL_PASSWORD,
     },
   });
@@ -127,8 +207,18 @@ if (req.method === 'GET') {
     }
 }
 
-  // Health check
-  if (req.method === 'GET' && req.url === '/health') {
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Health check
+ *     description: Check if the API is running
+ *     responses:
+ *       200:
+ *         description: API is healthy
+ */
+// Health check
+if (req.method === 'GET' && req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       status: 'OK', 
@@ -136,6 +226,40 @@ if (req.method === 'GET') {
       timestamp: new Date().toISOString(),
       websocketClients: clients.size
     }));
+    return;
+  }
+
+/**
+ * @swagger
+ * /test-db:
+ *   get:
+ *     summary: Test database connection
+ *     description: Check database connectivity and get sample data counts
+ *     responses:
+ *       200:
+ *         description: Database connection successful
+ *       500:
+ *         description: Database connection failed
+ */
+// Test database
+if (req.method === 'GET' && req.url === '/test-db') {
+    try {
+      const userCount = await prisma.user.count();
+      const eventCount = await prisma.event.count();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        status: 'Database connected!',
+        userCount,
+        eventCount,
+        timestamp: new Date().toISOString()
+      }));
+    } catch (error) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ 
+        status: 'Database error',
+        error: error.message 
+      }));
+    }
     return;
   }
 
@@ -226,30 +350,44 @@ if (req.method === 'GET') {
     return;
   }
 
-  // Test database
-  if (req.method === 'GET' && req.url === '/test-db') {
-    try {
-      const userCount = await prisma.user.count();
-      const eventCount = await prisma.event.count();
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ 
-        status: 'Database connected!',
-        userCount,
-        eventCount,
-        timestamp: new Date().toISOString()
-      }));
-    } catch (error) {
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ 
-        status: 'Database error',
-        error: error.message 
-      }));
-    }
-    return;
-  }
-
-  // User Signup with Email
-  if (req.method === 'POST' && req.url === '/signup') {
+/**
+ * @swagger
+ * /signup:
+ *   post:
+ *     summary: Register a new user
+ *     description: Create a new user account with email and password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *                 example: password123
+ *               role:
+ *                 type: string
+ *                 enum: [ADMIN, ORGANIZER, ATTENDEE]
+ *                 default: ATTENDEE
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Invalid input or missing fields
+ *       409:
+ *         description: User already exists
+ */
+// User Signup with Email
+if (req.method === 'POST' && req.url === '/signup') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
@@ -313,8 +451,39 @@ if (req.method === 'GET') {
     return;
   }
 
-  // User Login
-  if (req.method === 'POST' && req.url === '/login') {
+/**
+ * @swagger
+ * /login:
+ *   post:
+ *     summary: Authenticate user
+ *     description: Login with email and password to receive JWT token
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: user@example.com
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *       400:
+ *         description: Invalid input
+ *       401:
+ *         description: Invalid credentials
+ */
+// User Login
+if (req.method === 'POST' && req.url === '/login') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
@@ -359,80 +528,22 @@ if (req.method === 'GET') {
     return;
   }
 
-  // Create Event with WebSocket broadcast
-  if (req.method === 'POST' && req.url === '/events') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const authHeader = req.headers['authorization'];
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-          res.writeHead(401, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'No token provided' }));
-          return;
-        }
-
-        const token = authHeader.slice(7);
-        const decoded = jwt.verify(token, JWT_SECRET);
-
-        // Check if user is organizer or admin
-        if (decoded.role !== 'ORGANIZER' && decoded.role !== 'ADMIN') {
-          res.writeHead(403, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Requires ORGANIZER or ADMIN role' }));
-          return;
-        }
-
-        const { title, description, date, location } = JSON.parse(body);
-        
-        if (!title || !description || !date || !location) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Missing required fields' }));
-          return;
-        }
-
-        // Auto-approve if admin
-        const approved = decoded.role === 'ADMIN';
-
-        const event = await prisma.event.create({
-          data: {
-            title,
-            description,
-            date: new Date(date),
-            location,
-            organizerId: decoded.userId,
-            approved
-          },
-          include: {
-            organizer: { select: { email: true } },
-            rsvps: true
-          }
-        });
-
-        console.log(`✅ Event created: ${title}`);
-        
-        // Broadcast real-time update
-        broadcast({
-          type: 'EVENT_CREATED',
-          event,
-          timestamp: new Date().toISOString()
-        });
-
-        res.writeHead(201, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-          message: 'Event created successfully' + (approved ? ' and approved' : ' (pending approval)'),
-          event
-        }));
-      } catch (error) {
-        console.error('❌ Event creation error:', error);
-        res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Failed to create event', details: error.message }));
-      }
-    });
-    return;
-  }
-
-  // Get All Events - SINGLE VERSION (REMOVED DUPLICATE)
-  if (req.method === 'GET' && req.url === '/events') {
+/**
+ * @swagger
+ * /events:
+ *   get:
+ *     summary: Get all events
+ *     description: Retrieve all events (approved only for non-admins)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Events retrieved successfully
+ *       401:
+ *         description: Unauthorized
+ */
+// Get All Events - SINGLE VERSION (REMOVED DUPLICATE)
+if (req.method === 'GET' && req.url === '/events') {
     console.log('🎯 GET /events endpoint hit');
     
     try {
@@ -522,6 +633,119 @@ if (req.method === 'GET') {
         ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
       }));
     }
+    return;
+  }
+
+/**
+ * @swagger
+ * /events:
+ *   post:
+ *     summary: Create a new event
+ *     description: Create a new event (Organizer and Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - description
+ *               - date
+ *               - location
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: Tech Conference 2024
+ *               description:
+ *                 type: string
+ *                 example: Annual technology conference
+ *               date:
+ *                 type: string
+ *                 format: date-time
+ *                 example: 2024-12-15T09:00:00Z
+ *               location:
+ *                 type: string
+ *                 example: Convention Center, New York
+ *     responses:
+ *       201:
+ *         description: Event created successfully
+ *       400:
+ *         description: Invalid input or missing fields
+ *       403:
+ *         description: Insufficient permissions
+ */
+// Create Event with WebSocket broadcast
+if (req.method === 'POST' && req.url === '/events') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const authHeader = req.headers['authorization'];
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          res.writeHead(401, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'No token provided' }));
+          return;
+        }
+
+        const token = authHeader.slice(7);
+        const decoded = jwt.verify(token, JWT_SECRET);
+
+        // Check if user is organizer or admin
+        if (decoded.role !== 'ORGANIZER' && decoded.role !== 'ADMIN') {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Requires ORGANIZER or ADMIN role' }));
+          return;
+        }
+
+        const { title, description, date, location } = JSON.parse(body);
+        
+        if (!title || !description || !date || !location) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing required fields' }));
+          return;
+        }
+
+        // Auto-approve if admin
+        const approved = decoded.role === 'ADMIN';
+
+        const event = await prisma.event.create({
+          data: {
+            title,
+            description,
+            date: new Date(date),
+            location,
+            organizerId: decoded.userId,
+            approved
+          },
+          include: {
+            organizer: { select: { email: true } },
+            rsvps: true
+          }
+        });
+
+        console.log(`✅ Event created: ${title}`);
+        
+        // Broadcast real-time update
+        broadcast({
+          type: 'EVENT_CREATED',
+          event,
+          timestamp: new Date().toISOString()
+        });
+
+        res.writeHead(201, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+          message: 'Event created successfully' + (approved ? ' and approved' : ' (pending approval)'),
+          event
+        }));
+      } catch (error) {
+        console.error('❌ Event creation error:', error);
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Failed to create event', details: error.message }));
+      }
+    });
     return;
   }
 
@@ -857,9 +1081,10 @@ server.listen(PORT, () => {
   console.log('🎉 ENHANCED SERVER RUNNING WITH WEBSOCKETS!');
   console.log('📍 http://localhost:' + PORT);
   console.log('🔌 WebSocket: ws://localhost:' + PORT);
+  console.log('📚 Swagger Docs: http://localhost:' + PORT + '/swagger');
   console.log('\n✅ TEST THESE ENDPOINTS:');
   console.log('   GET  http://localhost:' + PORT + '/health');
-  console.log('   GET  http://localhost:' + PORT + '/ws-test');
+  console.log('   GET  http://localhost:' + PORT + '/swagger');
   console.log('   GET  http://localhost:' + PORT + '/test-db');
   console.log('   POST http://localhost:' + PORT + '/signup');
   console.log('   POST http://localhost:' + PORT + '/login');

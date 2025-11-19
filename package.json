@@ -25,7 +25,10 @@
     "bcrypt": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.10.1",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "express": "^4.18.2"
   },
   "devDependencies": {
     "prisma": "^6.18.0"
