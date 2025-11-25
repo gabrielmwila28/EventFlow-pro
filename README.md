@@ -1,3 +1,7 @@
+Gabriel Mwila 2410234
+Bristol Shalowa 2421003
+Sibongile Tembo 2410291
+
 EventFlow Pro 🎪
 A full-stack event management application with real-time updates, role-based access control, and modern web technologies.
 
